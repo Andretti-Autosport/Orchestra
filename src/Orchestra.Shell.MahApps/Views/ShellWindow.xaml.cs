@@ -26,7 +26,7 @@ namespace Orchestra.Views
         /// Initializes a new instance of the <see cref="ShellWindow"/> class.
         /// </summary>
         public ShellWindow()
-            : base(DataWindowMode.Custom, setOwnerAndFocus: false)
+            : base(DataWindowMode.Custom, setOwnerAndFocus: false, infoBarMessageControlGenerationMode: InfoBarMessageControlGenerationMode.None)
         {
             var serviceLocator = ServiceLocator.Default;
 
