@@ -7,8 +7,13 @@
 
 namespace Orchestra.Views
 {
+    using System;
+    using System.Collections.Specialized;
+    using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
+    using System.Windows;
     using Catel;
     using Catel.Logging;
     using Catel.MVVM;
@@ -29,28 +34,33 @@ namespace Orchestra.Views
         private readonly IMessageService _messageService;
         private readonly INavigationService _navigationService;
         private readonly ILanguageService _languageService;
+        private readonly IOpenFileService _openFileService;
         #endregion
 
         #region Constructors
         public CrashWarningViewModel(IManageAppDataService manageAppDataService, IMessageService messageService, INavigationService navigationService,
-            ILanguageService languageService)
+            ILanguageService languageService, IOpenFileService openFileService)
         {
             Argument.IsNotNull(() => messageService);
             Argument.IsNotNull(() => navigationService);
             Argument.IsNotNull(() => navigationService);
             Argument.IsNotNull(() => manageAppDataService);
             Argument.IsNotNull(() => languageService);
+            Argument.IsNotNull(() => openFileService);
 
             _manageAppDataService = manageAppDataService;
             _messageService = messageService;
             _navigationService = navigationService;
             _languageService = languageService;
+            _openFileService = openFileService;
 
             _assembly = Catel.Reflection.AssemblyHelper.GetEntryAssembly();
+            var directory = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Andretti Autosport\\SimUI\\log"));
+            FilePath = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First().ToString();
 
             Continue = new TaskCommand(OnContinueExecuteAsync);
-            ResetUserSettings = new TaskCommand(OnResetUserSettingsExecuteAsync);
-            BackupAndReset = new TaskCommand(OnResetAndBackupExecuteAsync);
+            Open = new TaskCommand(OnOpenExecuteAsync);
+            Copy = new TaskCommand(OnCopyExecuteAsync);
         }
         #endregion
 
@@ -59,44 +69,57 @@ namespace Orchestra.Views
         {
             get { return _assembly.Title(); }
         }
+
+        public string LogFile { get; set; }
+
+        private string _filePath { get; set; }
+
+        public string FilePath
+        {
+            get 
+            {
+                return _filePath;
+            }
+            set
+            {
+                _filePath = value;
+                using (var streamReader = new StreamReader(_filePath))
+                {
+                    LogFile = streamReader.ReadToEnd();
+                }
+            }
+        }
         #endregion
 
         #region Commands
-        public TaskCommand BackupAndReset { get; set; }
+        public TaskCommand Copy { get; set; }
 
-        private async Task OnResetAndBackupExecuteAsync()
+        private async Task OnCopyExecuteAsync()
         {
-            Log.Info("User choose to create a backup");
-
-            if (!await _manageAppDataService.BackupUserDataAsync(Catel.IO.ApplicationDataTarget.UserRoaming))
-            {
-                Log.Warning("User canceled the backup, exit application");
-
-                await _messageService.ShowErrorAsync(_languageService.GetString("Orchestra_FailedToCreateBackup"), _assembly.Title());
-
-                _navigationService.CloseApplication();
-
-                return;
-            }
-
-            await _manageAppDataService.DeleteUserDataAsync(Catel.IO.ApplicationDataTarget.UserRoaming);
-
-            await _messageService.ShowInformationAsync(_languageService.GetString("Orchestra_BackupCreated"), _assembly.Title());
-
-            await CloseViewModelAsync(false);
+            StringCollection files = new StringCollection();
+            files.Add(FilePath);
+            Clipboard.SetFileDropList(files);
         }
 
-        public TaskCommand ResetUserSettings { get; set; }
+        public TaskCommand Open { get; set; }
 
-        private async Task OnResetUserSettingsExecuteAsync()
+        private async Task OnOpenExecuteAsync()
         {
-            Log.Info("User choose NOT to create a backup");
+            DetermineOpenFileContext context = new DetermineOpenFileContext
+            {
+                Filter = "Log|*.log",
+                CheckFileExists = true,
+                IsMultiSelect = false,
+                Title = "Select Log File",
+                InitialDirectory  = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Andretti Autosport\\SimUI\\log")
+            };
 
-            await _manageAppDataService.DeleteUserDataAsync(Catel.IO.ApplicationDataTarget.UserRoaming);
+            DetermineOpenFileResult result = await _openFileService.DetermineFileAsync(context);
 
-            await _messageService.ShowInformationAsync(_languageService.GetString("Orchestra_DeletedUserDataSettings"), _assembly.Title());
-
-            await CloseViewModelAsync(false);
+            if (result.Result)
+            {
+                FilePath = result.FileName;
+            }
         }
 
         public TaskCommand Continue { get; set; }
@@ -109,11 +132,5 @@ namespace Orchestra.Views
         }
         #endregion
 
-        protected override Task<bool> CancelAsync()
-        {
-            Log.Info("User choose NOT to delete any data and continue (living on the edge)");
-
-            return base.CancelAsync();
-        }
     }
 }

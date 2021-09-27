@@ -65,12 +65,6 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-
-            <Style x:Key="CrashWarningWindowDropDownButtonStyle" 
-                   TargetType="{x:Type orccontrols:DropDownButton}" 
-                   BasedOn="{StaticResource {x:Type orccontrols:DropDownButton}}">
-                <Setter Property="ArrowMargin" Value="0,4,8,4" />
-            </Style>
         </ResourceDictionary>
     </catel:Window.Resources>
     
@@ -91,19 +85,24 @@
                 <TextBlock Text="{catel:LanguageBinding Orchestra_NotStartedCorrectly_01}" TextWrapping="Wrap" Margin="0 0 0 12" />
                 <TextBlock Text="{catel:LanguageBinding Orchestra_NotStartedCorrectly_02}" TextWrapping="Wrap" Margin="0 0 0 12" />
                 <TextBlock Text="{catel:LanguageBinding Orchestra_NotStartedCorrectly_03}" TextWrapping="Wrap" Margin="0 0 0 12" />
-
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <TextBox Text="{Binding LogFile}"
+                    IsReadOnly="True" 
+                     BorderThickness="0"
+                     Margin="0"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch" 
+                     IsUndoEnabled="False" 
+                     UndoLimit="0"
+                     VerticalScrollBarVisibility="Auto"/>
+                </ScrollViewer>
                 <DockPanel Margin="0 20 0 0" LastChildFill="False" VerticalAlignment="Top">
-                    <mah:DropDownButton Content="{catel:LanguageBinding Orchestra_UserDataSettings}" 
-                                                DockPanel.Dock="Left" Height="26" MinWidth="140"
-                                                >
-                        <mah:DropDownButton.Items>
-                            <MenuItem Header="{catel:LanguageBinding Orchestra_Reset}" Command="{Binding ResetUserSettings}"/>
-                            <MenuItem Header="{catel:LanguageBinding Orchestra_BackupAndReset}" Command="{Binding BackupAndReset}"/>
-                        </mah:DropDownButton.Items>
-                    </mah:DropDownButton>
-
-                    <Button Content="{catel:LanguageBinding Orchestra_Continue}" DockPanel.Dock="Right" MinWidth="70" Height="26" 
-                            IsDefault="true" Command="{Binding Continue}" Style="{StaticResource CrashWarningWindowButtonStyle}"/>
+                    <Button Content="Open" DockPanel.Dock="Left" 
+                            IsDefault="true" Command="{Binding Open}" />
+                    <Button Content="Copy File" 
+                            IsDefault="true" Command="{Binding Copy}" />
+                    <Button Content="Continue" DockPanel.Dock="Right" 
+                            IsDefault="true" Command="{Binding Continue}" />
                 </DockPanel>
             </StackPanel>
         </DockPanel>
